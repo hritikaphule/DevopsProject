@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: 3-tier-app-eks
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: livingdevopswithakhilesh/devopsdozo:backend-latest
+          ports:
+            - containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: app-config
+            - secretRef:
+                name: db-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: 3-tier-app-eks
+spec:
+  selector:
+    app: backend
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+  type: ClusterIP
