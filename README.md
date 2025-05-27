@@ -1,6 +1,5 @@
 # Deploying a production-ready 3-tier (React frontend+Flask backend + Postgres)application on AWS EKS with real-world setup (EKS, RDS, ALB, Route53, OIDC, IAM, EC2)
 
-![banner](https://miro.medium.com/v2/resize:fit:4800/format:webp/1*PB6jgC5b4bO0T3F-InbOLw.png)
 
 I'll deploy a detailed 3-tier application on an EKS cluster. The application consists of a React frontend for the user interface, a Flask backend API for business logic, and a private connection to an RDS PostgreSQL database for persistent storage.
 
@@ -52,8 +51,6 @@ eksctl create cluster \
 
 When we run EKSCTL commands, it will run a cloudformation stack in the backend to configure the resources, the EKS cluster in this case.
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*UxyId72AVYTLINj67y5b4w.png)
-
 This will create a new VPC, subnets, Nat gateway, and an EKS cluster with a managed node group.
 
 * List the cluster
@@ -62,7 +59,7 @@ This will create a new VPC, subnets, Nat gateway, and an EKS cluster with a mana
 aws eks list-clusters
 ```
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*nSlESN3rUF7DArDvuvlnGQ.png)
+
 
 * Setting up the cluster config to access the cluster from the local machine.
 
@@ -77,7 +74,6 @@ aws eks update-kubeconfig --name $cluster_name --region eu-west-1
 kubectl config current-context 
 ```
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*gDUzKv5n3fcotKZvhavHNA.png)
 
 Now you can connect to the EKS cluster using the kubectl command.
 
@@ -94,7 +90,6 @@ kubectl get pod -A
 kubectl get services -A
 ```
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*L7W8OJm6VkRED79jmsCqIA.png)
 
 ### **Deploying a 3-tier application on the EKS cluster**
 
@@ -128,8 +123,6 @@ aws rds create-db-subnet-group \
   --region eu-west-1
 ```
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*Xi42TFn0ibPh2vVN5Rpo3Q.png)
-
 * Create a security group that
 
 ```bash
@@ -141,7 +134,6 @@ aws ec2 create-security-group \
   --region eu-west-1
 ```
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*pATG5bx1ZnNStfH6lEDIUw.png)
 
 Allow the cluster nodes to reach RDS on port `5432`. For security reasons, we should only open the ports from a particular security group instead of all (`0.0.0.0/0`)
 
@@ -168,8 +160,6 @@ aws ec2 authorize-security-group-ingress \
   --region eu-west-1
 ```
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*sczI87XY2YEOJMOiuQjOfQ.png)
-
 * Creating an RDS instance that can only be privately accessed.
 
 ```bash
@@ -191,11 +181,8 @@ aws rds create-db-instance \
   --region eu-west-1
 ```
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*Ali7XP8Gb1P-q4RzKrMs9A.png)
-
 You can see that RDS instance is getting created.
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*6wbcsMhKhv43p-6renC1cQ.png)
 
 The RDS will take some time to be ready. Once it is, you can copy the RDS details.
 
@@ -217,7 +204,6 @@ cd 3-tier-app-eks/k8s
 tree .
 ```
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*IgAei8zoASURyRSWsIGNcw.png)
 
 This is the repo with all the code.
 
@@ -229,7 +215,6 @@ This is the repo with all the code.
 kubectl apply -f namespace.yaml
 ```
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*cgoHW2c2f4ga6uaAofPWAA.png)
 
 #### **Creating a service that points to the RDS endpoint**
 
@@ -251,7 +236,7 @@ kubectl apply -f database-service.yaml
 
 > A service is an abstraction that defines a logical set of pods and a policy to access them. Services enable network connectivity to pod sets that match specific selector criteria, regardless of where they're running.
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*bXl_GZch0YDUBgEL0fVxDw.png)
+
 
 Now we can use this service to point to RDS, if we need to update the cluster, we can update this service and everything will stay the same.
 
@@ -266,7 +251,6 @@ kubectl run -it --rm --restart=Never dns-test --image=tutum/dnsutils \
  -- dig postgres-db.3-tier-app-eks.svc.cluster.local
 ```
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*och_4GdddRKMk843D0cWJQ.png)
 
 * Testing the RDS connectivity
 
@@ -285,11 +269,9 @@ SELECT COUNT(*) FROM topics;
 
 I see the issue where I am not able to connect to the DB from the cluster. Issue could be related to the security group.
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*j0Zn5lhcV8F1c94_vYIjKQ.png)
 
 I will open all IPs to see if that fixes the issue.
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*ISkiSMNvqVbcsjnqcJzR3Q.png)
 
 #### **Creating a secret and configmaps with RDS DB details**
 
@@ -303,7 +285,6 @@ echo 'YourStrongPassword123!' | base64
 echo 'postgresql://postgresadmin:YourStrongPassword123!@postgres-db.3-tier-app-eks.svc.cluster.local:5432/postgres' | base64
 ```
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*XDr5pzATja4yo9j5HVeRag.png)
 
 `secrets.yaml`
 
@@ -343,7 +324,6 @@ kubectl apply -f configmap.yaml
 kubectl apply -f secrets.yaml 
 ```
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*tEFK5HrgKtt8svaaC71WFA.png)
 
 #### **Running the database migrations job**
 
@@ -360,8 +340,6 @@ kubectl get pods -n 3-tier-app-eks
 kubectl logs database-migration-nlz9f -n 3-tier-app-eks
 ```
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*BRAgSEqM3MpMdhzRILhUnw.png)
-
 This migration job will create the database tables and the seed data that your application will have at the start
 
 #### **Start the backend and frontend deployments.**
@@ -374,7 +352,6 @@ kubectl apply -f backend.yaml
 kubectl apply -f frontend.yaml 
 ```
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*-tMqfKLQta4X4poJC1nSNA.png)
 
 ```bash
 # checking the deployments and services
@@ -382,8 +359,6 @@ kubectl get deployment -n 3-tier-app-eks
 kubectl get svc -n 3-tier-app-eks
 kubectl get po -n 3-tier-app-eks
 ```
-
-![None](https://miro.medium.com/v2/resize:fit:700/1*7EOcnII-zIyQFSwcsk5q1g.png)
 
 ### **Accessing the application**
 
@@ -397,15 +372,10 @@ kubectl port-forward -n 3-tier-app-eks svc/backend 8000:8000
 kubectl port-forward -n 3-tier-app-eks svc/frontend 8080:80
 ```
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*_AXwf7qnfTBKpxhFtHb7mQ.png)
-
-You can access the backend API with the command `curl` [`http://localhost:8000/api/topics`](http://localhost:8000/api/topics)
-
-![None](https://miro.medium.com/v2/resize:fit:700/1*cPCOlZjFHoaiMBAukB3YCA.png)
+You can access the backend API with the command `curl`
 
 You can access the frontend on localhost on port 8080 `127.0.0.1:8080`
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*WYC1cw1fPxwEvqU72N3e9Q.png)
 
 This is a quiz application around devops topics. Seed data only creates a few questions, you can add more questions using the `manage question` option. I have added sample csv files on the path, `3-tier-app-eks/backend/questions-answers` that you can upload to add more questions.
 
@@ -448,7 +418,6 @@ eksctl utils associate-iam-oidc-provider --cluster $cluster_name --approve
 # -> Choose Add provider.
 ```
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*f8HmizOKvNog9nMtBsP5yQ.png)
 
 #### **Create IAM policy with necessary permissions for the Load Balancer Controller**
 
@@ -474,8 +443,6 @@ eksctl create iamserviceaccount \
 # verify its creation 
 kubectl get serviceaccount -n kube-system | grep -i aws-load-balancer-controller
 ```
-
-![None](https://miro.medium.com/v2/resize:fit:700/1*5kCLDmn1AX2qmaivvME9wg.png)
 
 #### **Installing the AWS Load balancer Controller with Helm**
 
@@ -560,7 +527,6 @@ kubectl logs -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controll
 
 **As you can see below, ingress is not able to create an ALB creation as it does not find the subnet with the required tag for application load balancer creation.**
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*MMV1QT-B2MU1FRxJDNMBLQ.png)
 
 ```bash
 # delete ingress
@@ -598,8 +564,6 @@ aws ec2 describe-subnets --subnet-ids subnet-05c313851d6e027e0 subnet-002f8dde08
 subnet-0f8aabbf5f8538d81 --query "Subnets[*].{SubnetId:SubnetId,Tags:Tags}"
 ```
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*74_D4X1fgXCsqscMF6mqyw.png)
-
 Now we can create the ingress resource and it should automatically spin up the Application load balancer.
 
 ```bash
@@ -614,15 +578,11 @@ kubectl describe ingress 3-tier-app-ingress -n 3-tier-app-eks
 kubectl logs -n kube-system -l app.kubernetes.io/name=aws-load-balancer-controller
 ```
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*Iy8Sy7pyumUzy9Tw7Scy-Q.png)
 
 Ingress status shows reconciled, which means it has created the load balancer. You can go to your AWS console where you will see an ALB there. Copy the DNS name for it and paste it in the browser, and you should be able to see your app there.
 
 #### **Validate ALB provisioning and test the routing to backend services**
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*edYV1dfcXHtEpuekvbfNcw.png)
-
-![None](https://miro.medium.com/v2/resize:fit:700/1*AhXAPTww7KqC09mO15rS8Q.png)
 
 Mapping the domain with the application to access it publicly
 
@@ -635,7 +595,6 @@ aws route53 create-hosted-zone \
   --hosted-zone-config Comment="Public hosted zone for akhileshmishra.tech"
 ```
 
-![None](https://miro.medium.com/v2/resize:fit:700/1*wPGs8npRZ-TCYFBDOjNQkw.png)
 
 Copy the name servers and update them in your domain (godaddy/namecheap, etc).
 
@@ -675,19 +634,3 @@ It takes some time for the DNS change to reflect, try pasting the subdomain (`ap
 
 ---
 
-## 🛠️ **Author & Community**
-
-This project is crafted by [**Harshhaa**](https://github.com/NotHarshhaa) 💡.  
-I’d love to hear your feedback! Feel free to share your thoughts.
-
----
-
-### 📧 **Connect with me:**
-
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-%230077B5.svg?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/harshhaa-vardhan-reddy) [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/NotHarshhaa) [![Telegram](https://img.shields.io/badge/Telegram-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/prodevopsguy) [![Dev.to](https://img.shields.io/badge/Dev.to-0A0A0A?style=for-the-badge&logo=dev.to&logoColor=white)](https://dev.to/notharshhaa) [![Hashnode](https://img.shields.io/badge/Hashnode-2962FF?style=for-the-badge&logo=hashnode&logoColor=white)](https://hashnode.com/@prodevopsguy)
-
----
-
-### 📢 **Stay Connected**
-
-![Follow Me](https://imgur.com/2j7GSPs.png)
